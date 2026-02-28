@@ -4,10 +4,11 @@ const APP_INFO = {
     version: "1.0.0",
     size: "63.2 MB",
     updatedAt: "2026-02-28",
-    apkUrl: "https://expo.dev/artifacts/eas/kRSsHbeVg8W59tRMKg1JqX.apk",
+    apkUrl: "https://expo.dev/artifacts/eas/7qsqHgbQzGvQGsm7tp4bCb.apk",
     changelog: [
-      "Fixed production APK server fallback (avoid Candidates: N/A on phone)",
-      "Improved login/register stability on Render cold start (longer timeout)",
+      "Fixed mobile toolbar toggle crash on web mobile viewport",
+      "Improved mobile landscape drawing layout and toolbar behavior",
+      "Normalized canvas scaling between desktop and phone displays",
       "Collaborative drawing with project rooms",
       "Invite-code based join flow",
       "Material icon tool bar and color panel",
@@ -15,6 +16,13 @@ const APP_INFO = {
     ]
   },
   history: [
+    {
+      version: "1.0.0",
+      size: "63.2 MB",
+      updatedAt: "2026-02-28",
+      notes: "UI/UX patch: mobile toolbar toggle + cross-device canvas scaling",
+      apkUrl: "https://expo.dev/artifacts/eas/7qsqHgbQzGvQGsm7tp4bCb.apk"
+    },
     {
       version: "1.0.0",
       size: "63.2 MB",

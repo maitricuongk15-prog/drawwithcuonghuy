@@ -22,6 +22,25 @@ const DEFAULT_TEXT_OPTIONS = {
   backgroundFill: false,
   backgroundColor: '#ffffff',
 };
+const MIN_CANVAS_SIZE = 1;
+const LEGACY_CANVAS_WIDTH = 1600;
+const LEGACY_CANVAS_HEIGHT = 900;
+
+function normalizeCanvasSizeValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return MIN_CANVAS_SIZE;
+  }
+  return numeric;
+}
+
+function normalizeStoredCanvasSize(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return undefined;
+  }
+  return numeric;
+}
 
 function normalizeTextOptions(source = {}) {
   const fontSize = Math.max(10, Math.min(72, Number(source.fontSize) || DEFAULT_TEXT_OPTIONS.fontSize));
@@ -184,6 +203,9 @@ function createDraftTextBoxFromOptions(options, text, id) {
 }
 
 function normalizeCanvasEntry(entry) {
+  const normalizedCanvasWidth = normalizeStoredCanvasSize(entry?.canvasWidth) || LEGACY_CANVAS_WIDTH;
+  const normalizedCanvasHeight = normalizeStoredCanvasSize(entry?.canvasHeight) || LEGACY_CANVAS_HEIGHT;
+
   if (isTextEntry(entry)) {
     const options = normalizeTextOptions(entry);
     const frame = getTextFrame({
@@ -212,12 +234,16 @@ function normalizeCanvasEntry(entry) {
       boxWidth: frame.width,
       boxHeight: frame.height,
       mode: 'text',
+      canvasWidth: normalizedCanvasWidth,
+      canvasHeight: normalizedCanvasHeight,
     };
   }
 
   return {
     ...entry,
     kind: entry?.kind || 'path',
+    canvasWidth: normalizedCanvasWidth,
+    canvasHeight: normalizedCanvasHeight,
   };
 }
 
@@ -228,7 +254,7 @@ function normalizeCanvasEntries(list) {
   return list.map(normalizeCanvasEntry);
 }
 
-function buildTextEntryFromBox(box) {
+function buildTextEntryFromBox(box, canvasSize) {
   const options = normalizeTextOptions(box);
   const width = Math.max(120, Number(box.width) || 120);
   const height = Math.max(34, Number(box.height) || options.fontSize + 14);
@@ -256,6 +282,8 @@ function buildTextEntryFromBox(box) {
     boxY: y,
     boxWidth: width,
     boxHeight: height,
+    canvasWidth: normalizeCanvasSizeValue(canvasSize?.width),
+    canvasHeight: normalizeCanvasSizeValue(canvasSize?.height),
   };
 }
 
@@ -287,6 +315,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
   const connectedUserRef = useRef(null);
   const currentProjectRef = useRef(null);
   const pathsRef = useRef([]);
+  const canvasSizeRef = useRef({ width: MIN_CANVAS_SIZE, height: MIN_CANVAS_SIZE });
 
   useEffect(() => {
     currentProjectRef.current = currentProject;
@@ -304,6 +333,20 @@ export function useDrawing({ notify, requestConfirm } = {}) {
     historyStepRef.current = nextStep;
     setHistory(clipped);
     setHistoryStep(nextStep);
+  }, []);
+
+  const setCanvasSize = useCallback((nextSize) => {
+    canvasSizeRef.current = {
+      width: normalizeCanvasSizeValue(nextSize?.width),
+      height: normalizeCanvasSizeValue(nextSize?.height),
+    };
+  }, []);
+
+  const getCanvasSizeSnapshot = useCallback(() => {
+    return {
+      width: normalizeCanvasSizeValue(canvasSizeRef.current?.width),
+      height: normalizeCanvasSizeValue(canvasSizeRef.current?.height),
+    };
   }, []);
 
   const resetDrawingState = useCallback(() => {
@@ -459,7 +502,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
       text: normalized,
       fontSize: Number(activeTextBox.fontSize) || textOptions.fontSize,
       color: activeTextBox.color || getStrokeColor('text', color),
-    });
+    }, getCanvasSizeSnapshot());
 
     setPaths((prevPaths) => {
       let updated = prevPaths.map((entry) => {
@@ -492,7 +535,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
     setActiveTextBox(null);
     setIsTextArmed(true);
     return true;
-  }, [activeTextBox, color, isConnected, saveToHistory, textOptions.fontSize]);
+  }, [activeTextBox, color, getCanvasSizeSnapshot, isConnected, saveToHistory, textOptions.fontSize]);
 
   const commitSelectedTextFromPanel = useCallback(() => {
     if (!selectedTextId || activeTextBox) {
@@ -1070,6 +1113,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
           const isTapStroke = !SHAPE_MODES.has(drawingMode) && !String(pathValue).includes(' L ');
 
           if (isTapStroke) {
+            const canvasSize = getCanvasSizeSnapshot();
             const dotEntry = {
               kind: 'dot',
               x: endX,
@@ -1078,6 +1122,8 @@ export function useDrawing({ notify, requestConfirm } = {}) {
               color: getStrokeColor(drawingMode, color),
               strokeOpacity: strokeProfile.strokeOpacity,
               mode: drawingMode,
+              canvasWidth: canvasSize.width,
+              canvasHeight: canvasSize.height,
             };
 
             setPaths((prevPaths) => {
@@ -1095,6 +1141,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
             return;
           }
 
+          const canvasSize = getCanvasSizeSnapshot();
           const newPath = {
             kind: 'path',
             path: pathValue,
@@ -1104,6 +1151,8 @@ export function useDrawing({ notify, requestConfirm } = {}) {
             lineCap: strokeProfile.lineCap,
             lineJoin: strokeProfile.lineJoin,
             mode: drawingMode,
+            canvasWidth: canvasSize.width,
+            canvasHeight: canvasSize.height,
           };
 
           setPaths((prevPaths) => {
@@ -1124,6 +1173,7 @@ export function useDrawing({ notify, requestConfirm } = {}) {
       color,
       currentProject?.id,
       drawingMode,
+      getCanvasSizeSnapshot,
       isConnected,
       isTextArmed,
       notify,
@@ -1185,5 +1235,6 @@ export function useDrawing({ notify, requestConfirm } = {}) {
     disarmTextPlacement,
     getActiveStrokeColor: () => getStrokeColor(drawingMode, color),
     getActiveStrokeProfile: () => getStrokeProfile(drawingMode, strokeWidth),
+    setCanvasSize,
   };
 }

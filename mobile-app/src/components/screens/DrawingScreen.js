@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle as SvgCircle, G, Path, Rect as SvgRect, Text as SvgText } from 'react-native-svg';
 import { BRUSH_SIZES, COLOR_PALETTE, TOOLS } from '../../constants/drawing';
@@ -144,6 +144,11 @@ function RgbaChannelSlider({
 }
 
 export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExportPng }) {
+  const { width, height } = useWindowDimensions();
+  const isPhoneLayout = width <= 932;
+  const isLandscape = width >= height;
+  const shouldShowToggle = isPhoneLayout;
+  const shouldSuggestLandscape = isPhoneLayout && !isLandscape;
   const basicTools = useMemo(() => TOOLS.filter((tool) => tool.group === 'tool'), []);
   const shapeTools = useMemo(() => TOOLS.filter((tool) => tool.group === 'shape'), []);
   const visibleStrokeCount = useMemo(
@@ -152,11 +157,34 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
   );
   const activeStrokeProfile = drawing.getActiveStrokeProfile();
   const [showRgbaPicker, setShowRgbaPicker] = useState(false);
+  const [toolbarVisible, setToolbarVisible] = useState(() => !isPhoneLayout);
   const [rgbaDraft, setRgbaDraft] = useState(() => parseColorToRgba(drawing.color));
+  const [canvasLayout, setCanvasLayout] = useState({ width: 1, height: 1 });
+  const ToolbarContainer = shouldShowToggle ? ScrollView : View;
+  const toolbarContainerStyle = shouldShowToggle
+    ? [styles.toolbar, styles.toolbarMobile]
+    : [styles.toolbar, styles.toolbarContent];
+  const toolbarContainerProps = shouldShowToggle
+    ? {
+        horizontal: true,
+        showsHorizontalScrollIndicator: false,
+        contentContainerStyle: [styles.toolbarContent, styles.toolbarContentMobile],
+      }
+    : {};
 
   useEffect(() => {
     setRgbaDraft(parseColorToRgba(drawing.color));
   }, [drawing.color]);
+
+  useEffect(() => {
+    if (!shouldShowToggle) {
+      setToolbarVisible(true);
+      return;
+    }
+    if (!isLandscape) {
+      setToolbarVisible(true);
+    }
+  }, [isLandscape, shouldShowToggle]);
 
   const updateChannel = useCallback(
     (channel, value) => {
@@ -172,11 +200,47 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
     [drawing]
   );
 
+  const handleCanvasLayout = useCallback(
+    (event) => {
+      const widthValue = Number(event?.nativeEvent?.layout?.width) || 1;
+      const heightValue = Number(event?.nativeEvent?.layout?.height) || 1;
+      const safeWidth = Math.max(1, widthValue);
+      const safeHeight = Math.max(1, heightValue);
+      setCanvasLayout((prev) => {
+        if (Math.abs(prev.width - safeWidth) < 0.5 && Math.abs(prev.height - safeHeight) < 0.5) {
+          return prev;
+        }
+        return { width: safeWidth, height: safeHeight };
+      });
+      drawing.setCanvasSize?.({ width: safeWidth, height: safeHeight });
+    },
+    [drawing]
+  );
+
+  const getEntryScale = useCallback(
+    (entry) => {
+      const sourceWidth = Number(entry?.canvasWidth);
+      const sourceHeight = Number(entry?.canvasHeight);
+      if (!Number.isFinite(sourceWidth) || sourceWidth <= 0 || !Number.isFinite(sourceHeight) || sourceHeight <= 0) {
+        return { scaleX: 1, scaleY: 1 };
+      }
+      return {
+        scaleX: canvasLayout.width / sourceWidth,
+        scaleY: canvasLayout.height / sourceHeight,
+      };
+    },
+    [canvasLayout.height, canvasLayout.width]
+  );
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <View style={styles.toolbar}>
+      {(!shouldShowToggle || toolbarVisible) && (
+      <ToolbarContainer
+        style={toolbarContainerStyle}
+        {...toolbarContainerProps}
+      >
         <View style={styles.toolbarSection}>
           <Text style={styles.sectionLabel}>Project</Text>
           <Text style={styles.projectTag}>{drawing.currentProject.name}</Text>
@@ -369,15 +433,39 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ToolbarContainer>
+      )}
 
       <View style={styles.workspace}>
-        <GestureDetector gesture={drawing.panGesture}>
-          <View style={styles.canvasContainer} ref={canvasContainerRef}>
-            <Svg style={styles.svg}>
+        {shouldShowToggle && (
+          <View style={styles.mobileOverlayActions}>
+            <TouchableOpacity
+              style={styles.mobileToolbarToggleButton}
+              onPress={() => setToolbarVisible((prev) => !prev)}
+              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.mobileToolbarToggleText}>{toolbarVisible ? 'Hide Tools' : 'Show Tools'}</Text>
+            </TouchableOpacity>
+            {shouldSuggestLandscape && (
+              <View style={styles.mobileRotateHintBox}>
+                <Text style={styles.mobileRotateHintText}>Rotate to landscape for full canvas.</Text>
+              </View>
+            )}
+          </View>
+        )}
+        <View style={styles.gestureLayer}>
+          <GestureDetector gesture={drawing.panGesture}>
+            <View
+              style={[styles.canvasContainer, shouldShowToggle && styles.canvasContainerMobile]}
+              ref={canvasContainerRef}
+              onLayout={handleCanvasLayout}
+            >
+              <Svg style={styles.svg}>
               <SvgRect x="0" y="0" width="100%" height="100%" fill="#ffffff" />
               <G>
                 {drawing.paths.map((entry, index) => {
+                  const { scaleX, scaleY } = getEntryScale(entry);
                   const isTextEntry =
                     entry?.kind === 'text' ||
                     (typeof entry?.text === 'string' && Number.isFinite(entry?.x) && Number.isFinite(entry?.y));
@@ -399,7 +487,10 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
                     const textY = frame.y + (entry.fontSize || 16) + 6;
 
                     return (
-                      <G key={`text-${entry?.id || index}`}>
+                      <G
+                        key={`text-${entry?.id || index}`}
+                        transform={scaleX !== 1 || scaleY !== 1 ? `scale(${scaleX} ${scaleY})` : undefined}
+                      >
                         {entry.backgroundFill && (
                           <SvgRect
                             x={frame.x}
@@ -431,9 +522,9 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
                       return (
                         <SvgCircle
                           key={`dot-${index}`}
-                          cx={entry.x}
-                          cy={entry.y}
-                          r={Math.max(0.75, Number(entry.radius) || 1)}
+                          cx={entry.x * scaleX}
+                          cy={entry.y * scaleY}
+                          r={Math.max(0.75, (Number(entry.radius) || 1) * Math.min(scaleX, scaleY))}
                           fill={entry.color || '#111827'}
                           fillOpacity={entry.strokeOpacity ?? 1}
                         />
@@ -452,6 +543,7 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
                       fill="none"
                       strokeLinecap={entry.lineCap || 'round'}
                       strokeLinejoin={entry.lineJoin || 'round'}
+                      transform={scaleX !== 1 || scaleY !== 1 ? `scale(${scaleX} ${scaleY})` : undefined}
                     />
                   );
                 })}
@@ -481,59 +573,60 @@ export function DrawingScreen({ auth, drawing, styles, canvasContainerRef, onExp
                   />
                 )}
               </G>
-            </Svg>
+              </Svg>
 
-            {drawing.activeTextBox && (
-              <View
-                style={[
-                  styles.textCanvasEditor,
-                  {
-                    left: drawing.activeTextBox.x,
-                    top: drawing.activeTextBox.y,
-                    width: drawing.activeTextBox.width,
-                    height: drawing.activeTextBox.height,
-                    backgroundColor: drawing.activeTextBox.backgroundFill
-                      ? drawing.activeTextBox.backgroundColor || '#ffffff'
-                      : 'rgba(255,255,255,0.96)',
-                  },
-                ]}
-              >
-                <TextInput
+              {drawing.activeTextBox && (
+                <View
                   style={[
-                    styles.textCanvasInput,
+                    styles.textCanvasEditor,
                     {
-                      fontSize: drawing.activeTextBox.fontSize,
-                      color: drawing.activeTextBox.color || '#111827',
-                      fontFamily: drawing.activeTextBox.fontFamily || 'Helvetica',
-                      fontWeight: drawing.activeTextBox.isBold ? '700' : '400',
-                      fontStyle: drawing.activeTextBox.isItalic ? 'italic' : 'normal',
-                      textDecorationLine: drawing.activeTextBox.isUnderline ? 'underline' : 'none',
-                      textAlign: drawing.activeTextBox.textAlign || 'left',
+                      left: drawing.activeTextBox.x,
+                      top: drawing.activeTextBox.y,
+                      width: drawing.activeTextBox.width,
+                      height: drawing.activeTextBox.height,
+                      backgroundColor: drawing.activeTextBox.backgroundFill
+                        ? drawing.activeTextBox.backgroundColor || '#ffffff'
+                        : 'rgba(255,255,255,0.96)',
                     },
                   ]}
-                  value={drawing.activeTextBox.text}
-                  onChangeText={drawing.setActiveTextBoxText}
-                  autoFocus
-                  multiline
-                  onBlur={drawing.commitActiveTextBox}
-                />
-              </View>
-            )}
-          </View>
-        </GestureDetector>
+                >
+                  <TextInput
+                    style={[
+                      styles.textCanvasInput,
+                      {
+                        fontSize: drawing.activeTextBox.fontSize,
+                        color: drawing.activeTextBox.color || '#111827',
+                        fontFamily: drawing.activeTextBox.fontFamily || 'Helvetica',
+                        fontWeight: drawing.activeTextBox.isBold ? '700' : '400',
+                        fontStyle: drawing.activeTextBox.isItalic ? 'italic' : 'normal',
+                        textDecorationLine: drawing.activeTextBox.isUnderline ? 'underline' : 'none',
+                        textAlign: drawing.activeTextBox.textAlign || 'left',
+                      },
+                    ]}
+                    value={drawing.activeTextBox.text}
+                    onChangeText={drawing.setActiveTextBoxText}
+                    autoFocus
+                    multiline
+                    onBlur={drawing.commitActiveTextBox}
+                  />
+                </View>
+              )}
+            </View>
+          </GestureDetector>
+        </View>
       </View>
 
-      <View style={styles.statusBar}>
+      <View style={[styles.statusBar, shouldShowToggle && styles.statusBarMobile]}>
         <View style={styles.statusLeft}>
-          <Text style={styles.statusText}>{drawing.currentProject.name}</Text>
-          <Text style={styles.statusDivider}>|</Text>
-          <Text style={styles.statusText}>
+          <Text style={[styles.statusText, shouldShowToggle && styles.statusTextMobile]}>{drawing.currentProject.name}</Text>
+          <Text style={[styles.statusDivider, shouldShowToggle && styles.statusTextMobile]}>|</Text>
+          <Text style={[styles.statusText, shouldShowToggle && styles.statusTextMobile]}>
             {drawing.drawingMode.charAt(0).toUpperCase() + drawing.drawingMode.slice(1)}
           </Text>
-          <Text style={styles.statusDivider}>|</Text>
-          <Text style={styles.statusText}>Size: {drawing.strokeWidth}px</Text>
+          <Text style={[styles.statusDivider, shouldShowToggle && styles.statusTextMobile]}>|</Text>
+          <Text style={[styles.statusText, shouldShowToggle && styles.statusTextMobile]}>Size: {drawing.strokeWidth}px</Text>
         </View>
-        <Text style={styles.statusRight}>
+        <Text style={[styles.statusRight, shouldShowToggle && styles.statusTextMobile]}>
           {visibleStrokeCount} strokes | {drawing.userCount} users | {drawing.isConnected ? 'Online' : 'Offline'}
         </Text>
       </View>

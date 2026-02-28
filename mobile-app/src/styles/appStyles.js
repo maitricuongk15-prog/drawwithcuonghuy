@@ -517,9 +517,21 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
     paddingVertical: 10,
     paddingHorizontal: 12,
+  },
+  toolbarContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     flexWrap: 'wrap',
+  },
+  toolbarMobile: {
+    maxHeight: 156,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  toolbarContentMobile: {
+    flexWrap: 'nowrap',
+    alignItems: 'stretch',
+    paddingRight: 12,
   },
   toolbarSection: {
     marginHorizontal: 4,
@@ -820,6 +832,49 @@ export const styles = StyleSheet.create({
   workspace: {
     flex: 1,
     flexDirection: 'row',
+    position: 'relative',
+    minHeight: 0,
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+  },
+  gestureLayer: {
+    flex: 1,
+    width: '100%',
+    minHeight: 0,
+  },
+  mobileOverlayActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 30,
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  mobileToolbarToggleButton: {
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  mobileToolbarToggleText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  mobileRotateHintBox: {
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    maxWidth: 220,
+  },
+  mobileRotateHintText: {
+    color: '#e2e8f0',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'right',
   },
   canvasContainer: {
     flex: 1,
@@ -829,6 +884,11 @@ export const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  canvasContainerMobile: {
+    margin: 0,
+    borderRadius: 0,
+    borderWidth: 0,
   },
   canvasContainerWithSidePanel: {
     marginRight: 0,
@@ -1060,6 +1120,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  statusBarMobile: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   statusLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1071,6 +1135,9 @@ export const styles = StyleSheet.create({
     color: '#374151',
     fontSize: 11,
     fontWeight: '500',
+  },
+  statusTextMobile: {
+    fontSize: 10,
   },
   statusDivider: {
     color: '#9ca3af',
