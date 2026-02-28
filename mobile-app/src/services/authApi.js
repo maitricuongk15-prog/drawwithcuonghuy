@@ -1,6 +1,6 @@
 import { requestJson } from './apiClient';
 
-const AUTH_REQUEST_TIMEOUT_MS = 1800;
+const AUTH_REQUEST_TIMEOUT_MS = 15000;
 
 export async function registerUser(payload) {
   return requestJson('/api/register', {

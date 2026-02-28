@@ -4,7 +4,7 @@ import {
   setActiveServerUrl,
 } from '../config/server';
 
-const REQUEST_TIMEOUT_MS = 3000;
+const REQUEST_TIMEOUT_MS = 15000;
 
 async function requestJsonAgainst(baseUrl, path, { method = 'GET', payload, timeoutMs } = {}) {
   const controller = new AbortController();
