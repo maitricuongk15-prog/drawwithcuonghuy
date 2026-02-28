@@ -1,6 +1,7 @@
 ﻿import { NativeModules, Platform } from 'react-native';
 
 const SERVER_PORT = 3001;
+const DEFAULT_PROD_SERVER_URL = 'https://drawwithcuonghuy.onrender.com';
 const DEFAULT_DEV_LAN_URL = 'http://192.168.1.14:3001';
 
 let activeServerUrl = '';
@@ -42,6 +43,8 @@ function getDevelopmentLanUrl() {
 export function getServerCandidates() {
   const envUrl = normalizeUrl(process.env.EXPO_PUBLIC_SERVER_URL);
   const isDev = isDevelopmentRuntime();
+  const prodFallbackUrl = !isDev ? normalizeUrl(DEFAULT_PROD_SERVER_URL) : '';
+  const primaryUrl = envUrl || prodFallbackUrl;
   const scriptHost = isDev ? getHostFromScriptUrl() : '';
   const autoDevUrl = scriptHost ? `http://${scriptHost}:${SERVER_PORT}` : '';
   const emulatorUrl = isDev && Platform.OS === 'android' ? `http://10.0.2.2:${SERVER_PORT}` : '';
@@ -52,6 +55,7 @@ export function getServerCandidates() {
   // Keep production focused on EXPO_PUBLIC_SERVER_URL and avoid stale local fallbacks.
   const basePriority = [
     normalizeUrl(activeServerUrl),
+    normalizeUrl(primaryUrl),
     envUrl,
     normalizeUrl(autoDevUrl),
     normalizeUrl(emulatorUrl),
