@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "test123",
+      "password": "$2b$10$f.1.ZTODaJipsKOwEY3ixe6kJobtiGeyGkkbDyGozBJHk6V2a51jy",
+      "displayName": "Test User",
+      "createdAt": "2026-01-21T01:33:52.158Z"
+    },
+    {
+      "id": 2,
+      "username": "asd",
+      "password": "$2b$10$mN902dXapxkl2whISuthEOIJkVw.f1a/9SR.4SdLvHiGzAoofonR.",
+      "displayName": "asd",
+      "createdAt": "2026-01-21T02:06:26.429Z"
+    },
+    {
+      "id": 3,
+      "username": "toilacuong",
+      "password": "$2b$10$wKGAG3soOmvi5rBKdduc9elU4I6nE8aqnGkARSWZY8i6uX3nfkkie",
+      "displayName": "cường",
+      "createdAt": "2026-01-21T02:06:57.643Z"
+    },
+    {
+      "id": 4,
+      "username": "toilacuong1",
+      "password": "$2b$10$0fT7K7l3ywvX9P2CM5L5aeDc8U9Lx6YUxqOXNZaRsZN5UzduCPoHu",
+      "displayName": "cuongmai",
+      "createdAt": "2026-02-12T06:03:03.962Z"
+    },
+    {
+      "id": 5,
+      "username": "toilacuongmai",
+      "password": "$2b$10$k1W9hI4OsWb8ZRr24.cGxOD3oQrnj6UvElNermeRPk22kEHmmsXNG",
+      "displayName": "123456",
+      "createdAt": "2026-02-26T14:31:21.007Z"
+    },
+    {
+      "id": 6,
+      "username": "dadad",
+      "password": "$2b$10$wyTSHABRIUyt5kQO8yXdwe5C1jMdd2ehIxorfMMkashYRlAunOFDm",
+      "displayName": "dawdadsa",
+      "createdAt": "2026-02-28T03:59:39.781Z"
+    },
+    {
+      "id": 7,
+      "username": "dwafa",
+      "password": "$2b$10$andzsCgrYFd8j77QTWYhNesREgHr7k3OjPkydh0IcYqW/jO9HbxEe",
+      "displayName": "saffaw",
+      "createdAt": "2026-02-28T04:03:06.585Z"
+    }
+  ],
+  "lastId": 7
+}
